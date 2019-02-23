@@ -6,5 +6,5 @@ k: 8
 gen_steps: 1
 batch_size: 512
 print_every: 100
-discriminator_layers: [16, 8]
+discriminator_layers: [10, 5]
 generator_layers: [8, 16, 8]

@@ -11,22 +11,22 @@ import datetime
 import shutil
 
 
-
-class MLP(nn.Module):
-    def __init__(self, input_size, layer_sizes, output_size, dropout_prob=0.5):
-        super(MLP, self).__init__()
-        self.layers = nn.ModuleList()
-        self.layers.append(nn.Linear(input_size, layer_sizes[0]))
-        if len(layer_sizes) > 1:
-            for i, layer in enumerate(layer_sizes[:-1]):
-                self.layers.append(nn.Linear(layer, layer_sizes[i+1]))
+class Discriminator(nn.Module):
+    def __init__(self, input_size, output_size, dropout_prob=0.5):
+        super(Discriminator, self).__init__()
+        self.conv1 = nn.Conv2d(input_size, 32, 3)
+        self.conv2 = nn.Conv2d(32, 64, 3)
+        self.conv3 = nn.Conv2d(64, 128, 3)
         self.dropout = torch.nn.Dropout(p=dropout_prob)
+        self.linear = nn.Linear(0,0)
         self.output = nn.Linear(layer_sizes[-1], output_size)
         self.sigmoid = nn.Sigmoid()
 
     def forward(self, x):
-        for layer in self.layers:
-            x = self.dropout(F.relu(layer(x)))
+        x = self.dropout(F.relu(self.conv1(x)))
+        x = self.dropout(F.relu(self.conv2(x)))
+        x = self.dropout(F.relu(self.conv3(x)))
+        x = self.dropout(F.relu(self.Linear(x)))
         return self.sigmoid(self.output(x))
 
 
