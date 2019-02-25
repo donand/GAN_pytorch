@@ -23,10 +23,11 @@ class MLP(nn.Module):
         self.dropout = torch.nn.Dropout(p=dropout_prob)
         self.output = nn.Linear(layer_sizes[-1], output_size)
         self.sigmoid = nn.Sigmoid()
+        self.tanh = nn.Tanh()
 
     def forward(self, x):
         for layer in self.layers:
-            x = self.dropout(F.relu(layer(x)))
+            x = self.dropout(self.tanh(layer(x)))
         return self.sigmoid(self.output(x))
 
 
@@ -39,10 +40,11 @@ class Generator(nn.Module):
             for i, layer in enumerate(layer_sizes[:-1]):
                 self.layers.append(nn.Linear(layer, layer_sizes[i+1]))
         self.output = nn.Linear(layer_sizes[-1], output_size)
+        self.tanh = nn.Tanh()
 
     def forward(self, x):
         for layer in self.layers:
-            x = F.relu(layer(x))
+            x = self.tanh(layer(x))
         return self.output(x)
 
 def discriminator_loss(output_discriminator, output_generator):
@@ -54,6 +56,9 @@ def generator_loss(output_generator):
 def generate_data(n_samples):
     #return torch.from_numpy(np.random.exponential(size=(n_samples, n_features))).type(dtype=torch.FloatTensor)
     return torch.from_numpy(np.random.randn(n_samples, n_features) + 3).type(dtype=torch.FloatTensor)
+
+device = 'cuda' if torch.cuda.is_available() else 'cpu'
+device = 'cpu'
 
 # Load hyperparameters
 stream = open('config.yml', 'r')
@@ -82,14 +87,14 @@ n_samples = n_samples // batch_size * batch_size
 train = generate_data(n_samples)
 print(train.shape)
 
-discriminator = MLP(n_features, discriminator_layers, 1)
-generator = Generator(n_noise_features, generator_layers, n_features)
+discriminator = MLP(n_features, discriminator_layers, 1).to(device)
+generator = Generator(n_noise_features, generator_layers, n_features).to(device)
 
 print('Discriminator\n{}\n\nGenerator\n{}'.format(discriminator, generator))
 print(train.shape)
 
-disc_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.0001)
-gen_optimizer = torch.optim.Adam(generator.parameters(), lr=0.0001)
+disc_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.001)
+gen_optimizer = torch.optim.Adam(generator.parameters(), lr=0.001)
 loss = torch.nn.BCELoss()
 
 disc_losses = []
@@ -106,17 +111,17 @@ for e in range(epochs):
     #########################
     for i in range(k):
         disc_optimizer.zero_grad()
-        noises = torch.from_numpy(np.random.rand(batch_size, n_noise_features)).type(dtype=torch.FloatTensor)
+        noises = torch.from_numpy(np.random.rand(batch_size, n_noise_features)).type(dtype=torch.FloatTensor).to(device)
         '''idx = np.random.randint(n_samples, size=batch_size)
         batch = train[idx, :]'''
-        batch = generate_data(batch_size)
+        batch = generate_data(batch_size).to(device)
         # Compute output of both the discriminator and generator
         disc_output = discriminator(batch)
         gen_output = discriminator(generator(noises))
         # Compute the discriminator loss
         #disc_loss = discriminator_loss(disc_output, gen_output)
-        disc_loss = loss(disc_output, torch.ones(batch_size, 1))
-        gen_loss = loss(gen_output, torch.zeros(batch_size, 1))
+        disc_loss = loss(disc_output, torch.ones(batch_size, 1).to(device))
+        gen_loss = loss(gen_output, torch.zeros(batch_size, 1).to(device))
         disc_loss = (disc_loss + gen_loss) / 2
         disc_losses.append(disc_loss.item())
         # Perform the optimization step for the discriminator
@@ -130,12 +135,12 @@ for e in range(epochs):
     discriminator.eval()
     for i in range(gen_steps):
         gen_optimizer.zero_grad()
-        noises = torch.from_numpy(np.random.rand(batch_size, n_noise_features)).type(dtype=torch.FloatTensor)
+        noises = torch.from_numpy(np.random.rand(batch_size, n_noise_features)).type(dtype=torch.FloatTensor).to(device)
         gen_output = discriminator(generator(noises))
         #print(torch.mean(gen_output).item())
         # Compute the generator loss
         #gen_loss = generator_loss(gen_output)
-        gen_loss = loss(gen_output, torch.ones(batch_size, 1))
+        gen_loss = loss(gen_output, torch.ones(batch_size, 1).to(device))
         # Perform the optimization step for the generator
         gen_loss.backward()
         gen_optimizer.step()
@@ -147,10 +152,10 @@ for e in range(epochs):
 
 discriminator.eval()
 generator.eval()
-test = generate_data(n_samples)
-noises = torch.from_numpy(np.random.rand(2000, n_noise_features)).type(dtype=torch.FloatTensor).detach()
-disc_output = discriminator(test[:2000]).detach()
-gen_output = generator(noises).detach()
+test = generate_data(n_samples).to(device)
+noises = torch.from_numpy(np.random.rand(2000, n_noise_features)).type(dtype=torch.FloatTensor).detach().to(device)
+disc_output = discriminator(test[:2000]).detach().to('cpu')
+gen_output = generator(noises).detach().to('cpu')
 print(disc_output.shape, gen_output.shape)
 disc_accuracy = np.mean(disc_output.squeeze().detach().numpy())
 gen_accuracy = np.mean(discriminator(gen_output).squeeze().detach().numpy())

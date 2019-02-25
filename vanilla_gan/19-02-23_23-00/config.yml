@@ -2,8 +2,8 @@ n_samples: 1000000
 n_features: 1
 n_noise_features: 1
 epochs: 5000
-k: 20
-gen_steps: 2
+k: 8
+gen_steps: 1
 batch_size: 512
 print_every: 100
 discriminator_layers: [16, 16, 8]
