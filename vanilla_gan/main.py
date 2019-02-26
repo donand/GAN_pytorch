@@ -2,6 +2,7 @@ import torch
 from torch import nn
 import torch.nn.functional as F
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from yaml import load, Loader
@@ -32,19 +33,20 @@ class MLP(nn.Module):
 
 
 class Generator(nn.Module):
-    def __init__(self, input_size, layer_sizes, output_size):
+    def __init__(self, input_size, layer_sizes, output_size, dropout_prob=0.5):
         super(Generator, self).__init__()
         self.layers = nn.ModuleList()
         self.layers.append(nn.Linear(input_size, layer_sizes[0]))
         if len(layer_sizes) > 1:
             for i, layer in enumerate(layer_sizes[:-1]):
                 self.layers.append(nn.Linear(layer, layer_sizes[i+1]))
+        self.dropout = torch.nn.Dropout(p=dropout_prob)
         self.output = nn.Linear(layer_sizes[-1], output_size)
         self.tanh = nn.Tanh()
 
     def forward(self, x):
         for layer in self.layers:
-            x = self.tanh(layer(x))
+            x = self.dropout(F.relu(layer(x)))
         return self.output(x)
 
 def discriminator_loss(output_discriminator, output_generator):
@@ -58,7 +60,7 @@ def generate_data(n_samples):
     return torch.from_numpy(np.random.randn(n_samples, n_features) + 3).type(dtype=torch.FloatTensor)
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-device = 'cpu'
+#device = 'cpu'
 
 # Load hyperparameters
 stream = open('config.yml', 'r')
@@ -97,8 +99,7 @@ disc_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.001)
 gen_optimizer = torch.optim.Adam(generator.parameters(), lr=0.001)
 loss = torch.nn.BCELoss()
 
-disc_losses = []
-gen_losses = []
+disc_losses, gen_losses, gen_means, gen_stds = [], [], [], []
 
 #i = 0
 for e in range(epochs):
@@ -136,7 +137,8 @@ for e in range(epochs):
     for i in range(gen_steps):
         gen_optimizer.zero_grad()
         noises = torch.from_numpy(np.random.rand(batch_size, n_noise_features)).type(dtype=torch.FloatTensor).to(device)
-        gen_output = discriminator(generator(noises))
+        generated = generator(noises)
+        gen_output = discriminator(generated)
         #print(torch.mean(gen_output).item())
         # Compute the generator loss
         #gen_loss = generator_loss(gen_output)
@@ -145,6 +147,8 @@ for e in range(epochs):
         gen_loss.backward()
         gen_optimizer.step()
         gen_losses.append(gen_loss.item())
+        gen_means.append(torch.mean(generated.squeeze().cpu()))
+        gen_stds.append(torch.std(generated.squeeze().cpu()))
     #print([x.grad for x in list(generator.parameters())])
     if e % print_every == 0:
         print('D loss: {:.5f}\tG loss: {:.5f}'.format(np.mean(disc_losses[-k:]), np.mean(gen_losses[-gen_steps:])))
@@ -155,10 +159,10 @@ generator.eval()
 test = generate_data(n_samples).to(device)
 noises = torch.from_numpy(np.random.rand(2000, n_noise_features)).type(dtype=torch.FloatTensor).detach().to(device)
 disc_output = discriminator(test[:2000]).detach().to('cpu')
-gen_output = generator(noises).detach().to('cpu')
-print(disc_output.shape, gen_output.shape)
+gen_output = generator(noises).detach()
+print(disc_output.shape, gen_output.to('cpu').shape)
 disc_accuracy = np.mean(disc_output.squeeze().detach().numpy())
-gen_accuracy = np.mean(discriminator(gen_output).squeeze().detach().numpy())
+gen_accuracy = np.mean(discriminator(gen_output).to('cpu').squeeze().detach().numpy())
 print('Discriminator accuracy on real data: {}\nDiscriminator accuracy on generated data: {}'.format(disc_accuracy, 1 - gen_accuracy))
 
 
@@ -182,19 +186,40 @@ else:
     plt.legend()
     plt.savefig('{}generated_vs_real_distribution'.format(result_dir), dpi=200)
 
+fig = plt.figure()
+sns.distplot(gen_output[:, 0])
+plt.savefig('{}generated'.format(result_dir), dpi=200)
+
 # PLot the generator and discriminator losses
 fig = plt.figure()
 plt.title('Discriminator Loss')
-plt.plot(range(len(disc_losses)), disc_losses)
+rolling = pd.Series(disc_losses).rolling(print_every).mean()
+plt.plot(range(len(rolling)), rolling)
 plt.xlabel('Training steps')
 plt.ylabel('Loss')
 plt.savefig('{}discriminator_loss'.format(result_dir), dpi=200)
 fig = plt.figure()
 plt.title('Generator Loss')
-plt.plot(range(len(gen_losses)), gen_losses)
+rolling = pd.Series(gen_losses).rolling(print_every).mean()
+plt.plot(range(len(rolling)), rolling)
 plt.xlabel('Training steps')
 plt.ylabel('Loss')
 plt.savefig('{}generator_loss'.format(result_dir), dpi=200)
+
+fig = plt.figure()
+plt.title('Mean')
+rolling = pd.Series(gen_means).rolling(print_every).mean()
+plt.plot(range(len(rolling)), rolling)
+plt.xlabel('Training steps')
+plt.ylabel('Mean')
+plt.savefig('{}mean'.format(result_dir), dpi=200)
+fig = plt.figure()
+plt.title('Standard Deviation')
+rolling = pd.Series(gen_stds).rolling(print_every).mean()
+plt.plot(range(len(rolling)), rolling)
+plt.xlabel('Training steps')
+plt.ylabel('Std')
+plt.savefig('{}std'.format(result_dir), dpi=200)
 
 # Save the models
 disc_dict = discriminator.state_dict()
