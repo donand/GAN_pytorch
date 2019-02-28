@@ -1,4 +1,4 @@
-# GANs_pytorch
+# GANs in PyTorch
 In this repository I implement several versions of Generative Adversarial Networks in PyTorch.
 
 All comments and discussions are welcome.
