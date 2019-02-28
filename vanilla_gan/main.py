@@ -57,7 +57,10 @@ def generator_loss(output_generator):
 
 def generate_data(n_samples):
     #return torch.from_numpy(np.random.exponential(size=(n_samples, n_features))).type(dtype=torch.FloatTensor)
-    return torch.from_numpy(np.random.randn(n_samples, n_features) + 3).type(dtype=torch.FloatTensor)
+    return torch.from_numpy(np.sort(np.random.randn(n_samples, n_features)) + 3).type(dtype=torch.FloatTensor)
+
+def generate_noise(n_samples):
+    return torch.from_numpy(np.sort(np.random.rand(batch_size, n_noise_features))).type(dtype=torch.FloatTensor)
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
 #device = 'cpu'
@@ -112,7 +115,7 @@ for e in range(epochs):
     #########################
     for i in range(k):
         disc_optimizer.zero_grad()
-        noises = torch.from_numpy(np.random.rand(batch_size, n_noise_features)).type(dtype=torch.FloatTensor).to(device)
+        noises = generate_noise(batch_size).to(device)
         '''idx = np.random.randint(n_samples, size=batch_size)
         batch = train[idx, :]'''
         batch = generate_data(batch_size).to(device)
@@ -136,7 +139,7 @@ for e in range(epochs):
     discriminator.eval()
     for i in range(gen_steps):
         gen_optimizer.zero_grad()
-        noises = torch.from_numpy(np.random.rand(batch_size, n_noise_features)).type(dtype=torch.FloatTensor).to(device)
+        noises = generate_noise(batch_size).to(device)
         generated = generator(noises)
         gen_output = discriminator(generated)
         #print(torch.mean(gen_output).item())
@@ -157,7 +160,7 @@ for e in range(epochs):
 discriminator.eval()
 generator.eval()
 test = generate_data(n_samples).to(device)
-noises = torch.from_numpy(np.random.rand(2000, n_noise_features)).type(dtype=torch.FloatTensor).detach().to(device)
+noises = generate_noise(2000).detach().to(device)
 disc_output = discriminator(test[:2000]).detach().to('cpu')
 gen_output = generator(noises).detach()
 print(disc_output.shape, gen_output.to('cpu').shape)
@@ -167,6 +170,8 @@ print('Discriminator accuracy on real data: {}\nDiscriminator accuracy on genera
 
 
 # Plot the real and generated distributions
+test = test.cpu()
+gen_output = gen_output.cpu()
 if n_features >= 25:
     fig, ax = plt.subplots(5, 5, figsize=(15,15))
     plt.title('Generated vs Real Distributions')
