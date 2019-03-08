@@ -1,8 +1,8 @@
 n_samples: 1000000
 n_features: 1
 n_noise_features: 100
-epochs: 500
+epochs: 10
 k: 1
 gen_steps: 1
-batch_size: 64
-print_every: 50
+batch_size: 4
+print_every: 1

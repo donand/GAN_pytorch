@@ -3,8 +3,8 @@ In this repository I implement several versions of Generative Adversarial Networ
 
 All comments and discussions are welcome.
 
-# Vanilla GANs
-In this section I implemented the original version of GANs as described in [this paper](https://arxiv.org/abs/1406.2661) by Ian J. Goodfellow, Jean Pouget-Abadie, Mehdi Mirza, Bing Xu, David Warde-Farley, Sherjil Ozair, Aaron Courville, Yoshua Bengio
+# GAN
+In this section I implemented the original version of GAN as described in [this paper](https://arxiv.org/abs/1406.2661) by Ian J. Goodfellow, Jean Pouget-Abadie, Mehdi Mirza, Bing Xu, David Warde-Farley, Sherjil Ozair, Aaron Courville, Yoshua Bengio
 
 ## Experiment setup
 The target distribution was a Normal distribution with mean=3 and std=1, and the input noise to the generator was sampled from a uniform distribution. Both the target and noise samples are monodimensional, but this can be changed in the config.yml file in order to extend to multiple dimensions.
@@ -20,17 +20,15 @@ The training of the two networks was quite unstable and with high variance, wher
 
 Below are reported some charts of the results of the experiment. As you can see, the generator matched the range and the mean of the real data distribution, even if it's not perfectly getting the good bell shape.<br><br>
 
-<p align="center"><img src="vanilla_gan/19-02-27_10-11/generated_vs_real_distribution.png" alt="Distributions" width="500" height="400"></p>
+<p align="center"><img src="GAN/19-02-27_10-11/generated_vs_real_distribution.png" alt="Distributions" width="500" height="400"></p>
 
 Discriminator Loss                                           |  Generator Loss
 :-----------------------------------------------------------:|:---------------------------------------:
-![Discriminator Loss](vanilla_gan/19-02-27_10-11/discriminator_loss.png) | ![Generator Loss](vanilla_gan/19-02-27_10-11/generator_loss.png)
+![Discriminator Loss](GAN/19-02-27_10-11/discriminator_loss.png) | ![Generator Loss](GAN/19-02-27_10-11/generator_loss.png)
 
 As we can see, the generator was able to catch the real mean of the data after around 15k steps.<br><br>
 
-<p align="center"><img src="vanilla_gan/19-02-27_10-11/mean.png" alt="Mean" width="500" height="400"></p>
+<p align="center"><img src="GAN/19-02-27_10-11/mean.png" alt="Mean" width="500" height="400"></p>
 
-# Convolutional GANs - Work in Progress
-This is an extension of the Vanilla GANs developed in the previous section. It can be seen as an exercise and preparation to the latest and more advanced GANs that have been introduced in the last years.
-
-The idea is to extend the previous implementation to use Convolutional Neural Networks for the generation of images.
+# Deep Convolutional GAN (DCGAN) - Work in Progress
+This will be the implementation of GAN using Deep Convolutional Neural Networks as described in [Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks](https://arxiv.org/abs/1511.06434) by Alec Radford, Luke Metz and Soumith Chintala.

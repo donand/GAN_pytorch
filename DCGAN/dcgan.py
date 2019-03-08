@@ -20,7 +20,27 @@ class Discriminator(nn.Module):
     def __init__(self, input_size, output_size, fully_connected_size,
                  dropout_prob=0.3):
         super(Discriminator, self).__init__()
-        self.conv1 = nn.Conv2d(3, 16, 3, padding=1, stride=2)
+        self.flattened_size = 64 * (image_size[1]//2//2//2) * (image_size[2]//2//2//2)
+        self.conv_block = nn.Sequential(
+            # input is (3, 32, 32)
+            nn.Conv2d(3, 16, 3, padding=1, stride=2),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+
+            # input is (16, 16, 16)
+            nn.Conv2d(16, 32, 3, padding=1, stride=2),
+            nn.BatchNorm2d(32),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+
+            # input is (32, 8, 8)
+            nn.Conv2d(32, 64, 3, padding=1, stride=2),
+            nn.BatchNorm2d(64),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+
+            # input is (64, 4, 4)
+            nn.Conv2d(64, 1, 3, padding=0, stride=1),
+            nn.Sigmoid()
+        )
+        '''self.conv1 = nn.Conv2d(3, 16, 3, padding=1, stride=2)
         self.bn2 = nn.BatchNorm2d(16, 0.8)
         self.conv2 = nn.Conv2d(16, 32, 3, padding=1, stride=2)
         self.bn3 = nn.BatchNorm2d(32, 0.8)
@@ -30,15 +50,17 @@ class Discriminator(nn.Module):
         self.flattened_size = 64 * (image_size[1]//2//2//2) * (image_size[2]//2//2//2)
         self.fully1 = nn.Linear(self.flattened_size, fully_connected_size)
         self.output = nn.Linear(fully_connected_size, output_size)
-        self.sigmoid = nn.Sigmoid()
+        self.sigmoid = nn.Sigmoid()'''
 
     def forward(self, x):
-        x = F.relu(self.conv1(x))
-        x = F.relu(self.conv2(self.bn2(x)))
-        x = F.relu(self.conv3(self.bn3(x)))
+        '''x = F.leaky_relu(self.conv1(x), negative_slope=0.2)
+        x = F.leaky_relu(self.conv2(self.bn2(x)), negative_slope=0.2)
+        x = F.leaky_relu(self.conv3(self.bn3(x)), negative_slope=0.2)
         x = x.view(-1, self.flattened_size)
         x = self.dropout(F.relu(self.fully1(x)))
-        return self.sigmoid(self.output(x))
+        return self.sigmoid(self.output(x))'''
+        x = self.conv_block(x)
+        return x.view(-1, 1)
 
 
 class Interpolate(nn.Module):
@@ -57,25 +79,46 @@ class Generator(nn.Module):
                  dropout_prob=0.3):
         super(Generator, self).__init__()
 
-        self.init_size = (image_size[1] // 4, image_size[2] // 4)
-        self.linear1 = nn.Linear(input_size, 128 * self.init_size[0] * self.init_size[1])
+        self.conv_block = nn.Sequential(
+            nn.ConvTranspose2d(input_size, 128, 3, padding=0),
+            nn.BatchNorm2d(128),
+            nn.ReLU(inplace=True),
 
+            nn.ConvTranspose2d(128, 64, 3, stride=2, padding=1),
+            nn.BatchNorm2d(64),
+            nn.ReLU(inplace=True),
+
+            nn.ConvTranspose2d(64, 32, 3, stride=2, padding=1),
+            nn.BatchNorm2d(32),
+            nn.ReLU(inplace=True),
+
+            nn.ConvTranspose2d(32, 16, 3, stride=2, padding=1),
+            nn.BatchNorm2d(16),
+            nn.ReLU(inplace=True),
+
+            nn.ConvTranspose2d(16, output_channels, 3, stride=2, padding=1),
+            nn.Tanh(),
+        )
+
+        '''self.init_size = (image_size[1] // 4, image_size[2] // 4)
+        self.linear1 = nn.Linear(input_size, 128 * self.init_size[0] * self.init_size[1])
         self.conv_block = nn.Sequential(
             nn.BatchNorm2d(128),
             Interpolate(2),
             nn.Conv2d(128, 128, 3, padding=1),
             nn.BatchNorm2d(128, 0.8),
-            nn.LeakyReLU(0.2),
+            nn.ReLU(),
             Interpolate(2),
             nn.Conv2d(128, 64, 3, padding=1),
-            nn.LeakyReLU(negative_slope=0.2),
+            nn.ReLU(),
             nn.Conv2d(64, output_channels, 3, padding=1),
             nn.Tanh()
-        )
+        )'''
 
     def forward(self, x):
-        x = self.linear1(x)
-        x = x.view(x.shape[0], 128, *self.init_size)
+        '''x = self.linear1(x)
+        x = x.view(x.shape[0], 128, *self.init_size)'''
+        x = x.view(x.shape[0], x.shape[1], 1, 1)
         x = self.conv_block(x)
         return x
 
@@ -219,7 +262,7 @@ for e in range(epochs):
         # Perform the optimization step for the discriminator
         disc_loss.backward()
         disc_optimizer.step()
-    print(np.mean(temp), np.mean(temp2))
+    #print(np.mean(temp), np.mean(temp2))
 
     #######################
     # Train the generator
@@ -241,7 +284,7 @@ for e in range(epochs):
         gen_optimizer.step()
         gen_losses.append(gen_loss.item())
         temp3.append(np.mean(gen_output.cpu().detach().numpy()))
-    print('------------', gen_loss.item(), np.mean(temp3))
+    #print('------------', gen_loss.item(), np.mean(temp3))
     #print([x.grad for x in list(generator.parameters())])
     if e % print_every == 0:
         print('D loss: {:.5f}\tG loss: {:.5f}'.format(np.mean(disc_losses[-k:]), np.mean(gen_losses[-gen_steps:])))
@@ -263,13 +306,13 @@ print('Discriminator accuracy on real data: {}\nDiscriminator accuracy on genera
 # plot the images in the batch, along with the corresponding labels
 fig = plt.figure(figsize=(25, 10))
 # display 20 images
-for idx in np.arange(20):
+for idx in np.arange(min(batch_size, 20)):
     ax = fig.add_subplot(2, 20/2, idx+1, xticks=[], yticks=[])
     imshow(gen_output[idx].cpu().numpy())
     ax.set_title('asd')
 plt.show()
 
-for i in range(5):
+for i in range(min(batch_size, 5)):
     imshow(gen_output[i].cpu().numpy())
     plt.savefig('{}{}'.format(result_dir, i))
 
