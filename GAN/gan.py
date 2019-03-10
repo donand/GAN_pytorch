@@ -12,10 +12,9 @@ import datetime
 import shutil
 
 
-
-class MLP(nn.Module):
+class Discriminator(nn.Module):
     def __init__(self, input_size, layer_sizes, output_size, dropout_prob=0.5):
-        super(MLP, self).__init__()
+        super(Discriminator, self).__init__()
         self.layers = nn.ModuleList()
         self.layers.append(nn.Linear(input_size, layer_sizes[0]))
         if len(layer_sizes) > 1:
@@ -24,11 +23,11 @@ class MLP(nn.Module):
         self.dropout = torch.nn.Dropout(p=dropout_prob)
         self.output = nn.Linear(layer_sizes[-1], output_size)
         self.sigmoid = nn.Sigmoid()
-        self.tanh = nn.Tanh()
+        self.leaky_relu = nn.LeakyReLU(negative_slope=0.2)
 
     def forward(self, x):
         for layer in self.layers:
-            x = self.dropout(self.tanh(layer(x)))
+            x = self.dropout(self.leaky_relu(layer(x)))
         return self.sigmoid(self.output(x))
 
 
@@ -41,29 +40,34 @@ class Generator(nn.Module):
             for i, layer in enumerate(layer_sizes[:-1]):
                 self.layers.append(nn.Linear(layer, layer_sizes[i+1]))
         self.dropout = torch.nn.Dropout(p=dropout_prob)
+        self.leaky_relu = nn.LeakyReLU(negative_slope=0.2)
         self.output = nn.Linear(layer_sizes[-1], output_size)
-        self.tanh = nn.Tanh()
 
     def forward(self, x):
         for layer in self.layers:
-            x = self.dropout(F.relu(layer(x)))
-        return self.output(x)
+            x = self.dropout(self.leaky_relu(layer(x)))
+        return self.leaky_relu(self.output(x))
+
 
 def discriminator_loss(output_discriminator, output_generator):
     return - torch.mean(torch.log(output_discriminator.squeeze()) + torch.log(1 - output_generator.squeeze()))
 
+
 def generator_loss(output_generator):
     return - torch.mean(torch.log(output_generator.squeeze()))
+
 
 def generate_data(n_samples):
     #return torch.from_numpy(np.random.exponential(size=(n_samples, n_features))).type(dtype=torch.FloatTensor)
     return torch.from_numpy(np.sort(np.random.randn(n_samples, n_features)) + 3).type(dtype=torch.FloatTensor)
 
+
 def generate_noise(n_samples):
     return torch.from_numpy(np.sort(np.random.rand(batch_size, n_noise_features))).type(dtype=torch.FloatTensor)
 
+
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-#device = 'cpu'
+# device = 'cpu'
 
 # Load hyperparameters
 stream = open('config.yml', 'r')
@@ -92,14 +96,14 @@ n_samples = n_samples // batch_size * batch_size
 train = generate_data(n_samples)
 print(train.shape)
 
-discriminator = MLP(n_features, discriminator_layers, 1).to(device)
+discriminator = Discriminator(n_features, discriminator_layers, 1).to(device)
 generator = Generator(n_noise_features, generator_layers, n_features).to(device)
 
 print('Discriminator\n{}\n\nGenerator\n{}'.format(discriminator, generator))
 print(train.shape)
 
-disc_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.001)
-gen_optimizer = torch.optim.Adam(generator.parameters(), lr=0.001)
+disc_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.0002, betas=(0.5, 0.999))
+gen_optimizer = torch.optim.Adam(generator.parameters(), lr=0.0002, betas=(0.5, 0.999))
 loss = torch.nn.BCELoss()
 
 disc_losses, gen_losses, gen_means, gen_stds = [], [], [], []
@@ -108,8 +112,8 @@ disc_losses, gen_losses, gen_means, gen_stds = [], [], [], []
 for e in range(epochs):
     if e % print_every == 0:
         print('Epoch {}'.format(e))
-    discriminator.train()
-    generator.eval()
+    #discriminator.train()
+    #generator.eval()
     #########################
     # Train the discriminator
     #########################
@@ -133,10 +137,10 @@ for e in range(epochs):
         disc_optimizer.step()
 
     #######################
-    ### Train the generator
+    # Train the generator
     #######################
-    generator.train()
-    discriminator.eval()
+    #generator.train()
+    #discriminator.eval()
     for i in range(gen_steps):
         gen_optimizer.zero_grad()
         noises = generate_noise(batch_size).to(device)
@@ -157,11 +161,11 @@ for e in range(epochs):
         print('D loss: {:.5f}\tG loss: {:.5f}'.format(np.mean(disc_losses[-k:]), np.mean(gen_losses[-gen_steps:])))
 
 
-discriminator.eval()
-generator.eval()
-test = generate_data(n_samples).to(device)
+#discriminator.eval()
+#generator.eval()
+test = generate_data(2000).to(device)
 noises = generate_noise(2000).detach().to(device)
-disc_output = discriminator(test[:2000]).detach().to('cpu')
+disc_output = discriminator(test).detach().to('cpu')
 gen_output = generator(noises).detach()
 print(disc_output.shape, gen_output.to('cpu').shape)
 disc_accuracy = np.mean(disc_output.squeeze().detach().numpy())
@@ -178,14 +182,14 @@ if n_features >= 25:
     for i in range(5):
         for j in range(5):
             idx = i*5 + j
-            sns.distplot(test[:2000, idx], label='Real - dim 0', ax=ax[i][j])
-            sns.distplot(gen_output[:, idx], label='Generated - dim 0', ax=ax[i][j])
+            sns.distplot(test[:, idx], label='Real - dim {}'.format(idx), ax=ax[i][j])
+            sns.distplot(gen_output[:, idx], label='Generated - dim {}'.format(idx), ax=ax[i][j])
             ax[i][j].xlabel('Samples')
     plt.legend()
     plt.savefig('{}generated_vs_real_distribution'.format(result_dir), dpi=200)
 else:
     plt.title('Generated vs Real Distributions')
-    sns.distplot(test[:2000, 0], label='Real - dim 0')
+    sns.distplot(test[:, 0], label='Real - dim 0')
     sns.distplot(gen_output[:, 0], label='Generated - dim 0')
     plt.xlabel('Samples')
     plt.legend()
@@ -194,6 +198,12 @@ else:
 fig = plt.figure()
 sns.distplot(gen_output[:, 0])
 plt.savefig('{}generated'.format(result_dir), dpi=200)
+
+fig = plt.figure()
+plt.hist(gen_output[:, 0], bins=20)
+plt.savefig('{}generated_hist'.format(result_dir), dpi=200)
+
+print(np.std(test[:, 0].numpy()), np.std(gen_output[:, 0].numpy()))
 
 # PLot the generator and discriminator losses
 fig = plt.figure()

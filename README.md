@@ -14,21 +14,28 @@ The discriminator is composed by 3 hidden layers with 16, 16 and 8 neurons respe
 The generator is composed by 3 hidden layers of sizes 16, 32, 16 relatively, with ReLU activation functions. The output layer has the same size of the number of dimensions of the target samples, so in our case is 1. The output activation function is linear, because we don't want to limit the output values.
 
 ## Results
-Here some results are reported after training for 20k steps.
+Here some results are reported after training for 5k steps. One step consists in one training step for the discriminator and one for the generator.
 
-The training of the two networks was quite unstable and with high variance, where different runs with the same setup but different initializations produced very different results in some cases. A possible next step could be to reduce the size of the networks (reducing the number of neurons per layer or the number of layers) in order to obtain more stable models.
+As we can see, the generator correctly replicated the original distribution, that was a Gaussan distribution with mean = 3 and std = 1.
 
-Below are reported some charts of the results of the experiment. As you can see, the generator matched the range and the mean of the real data distribution, even if it's not perfectly getting the good bell shape.<br><br>
+A possible next step could be to reduce the size of the networks (reducing the number of neurons per layer or the number of layers) in order to obtain more stable models.
 
-<p align="center"><img src="GAN/19-02-27_10-11/generated_vs_real_distribution.png" alt="Distributions" width="500" height="400"></p>
+Below are reported some charts of the results of the experiment. As you can see, the generator matched the  real data distribution.<br>
+We can also see that the mean and standard deviation of the generated distribution successfully converged to the real ones. We can note that there is still a decreasing trend in the standard deviation, so more training steps could be beneficial.<br><br>
+
+<p align="center"><img src="GAN/results/generated_vs_real_distribution.png" alt="Distributions" width="500" height="400"></p>
 
 Discriminator Loss                                           |  Generator Loss
 :-----------------------------------------------------------:|:---------------------------------------:
-![Discriminator Loss](GAN/19-02-27_10-11/discriminator_loss.png) | ![Generator Loss](GAN/19-02-27_10-11/generator_loss.png)
+![Discriminator Loss](GAN/results/discriminator_loss.png) | ![Generator Loss](GAN/results/generator_loss.png)
 
-As we can see, the generator was able to catch the real mean of the data after around 15k steps.<br><br>
+As we can see, the generator was able to catch the real mean of the data after around 5k steps.<br><br>
 
-<p align="center"><img src="GAN/19-02-27_10-11/mean.png" alt="Mean" width="500" height="400"></p>
+Mean of the Generated Distribution                                          |  STD of the Generated Distribution
+:-----------------------------------------------------------:|:---------------------------------------:
+![Discriminator Loss](GAN/results/mean.png) | ![Generator Loss](GAN/results/std.png)
+
+
 
 # Deep Convolutional GAN (DCGAN) - Work in Progress
 This will be the implementation of GAN using Deep Convolutional Neural Networks as described in [Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks](https://arxiv.org/abs/1511.06434) by Alec Radford, Luke Metz and Soumith Chintala.
