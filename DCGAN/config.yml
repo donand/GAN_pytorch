@@ -1,8 +1,12 @@
 n_samples: 1000000
 n_features: 1
 n_noise_features: 100
-epochs: 10
+epochs: 40
 k: 1
 gen_steps: 1
-batch_size: 4
+discriminator_filters: 64
+generator_filters: 64
+batch_size: 128
 print_every: 1
+checkpoints: 5
+rolling_window: 100
