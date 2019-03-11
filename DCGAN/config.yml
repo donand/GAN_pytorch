@@ -10,3 +10,5 @@ batch_size: 128
 print_every: 1
 checkpoints: 5
 rolling_window: 100
+discriminator_label_noise: True
+discriminator_input_noise: True
