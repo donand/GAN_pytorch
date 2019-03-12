@@ -12,7 +12,7 @@ import shutil
 import pandas as pd
 import time
 
-image_size = (1, 32, 32)
+image_size = (1, 64, 64)
 grayscale = True
 
 
@@ -35,8 +35,12 @@ class Discriminator(nn.Module):
             nn.BatchNorm2d(nf * 4),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
+            nn.Conv2d(nf * 4, nf * 8, 4, padding=1, stride=2),
+            nn.BatchNorm2d(nf * 8),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+
             # input is (nf*4, 4, 4)
-            nn.Conv2d(nf * 4, 1, 4, padding=0, stride=1),
+            nn.Conv2d(nf * 8, 1, 4, padding=0, stride=1),
             nn.Sigmoid()
         )
 
@@ -54,7 +58,11 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
 
         self.conv_block = nn.Sequential(
-            nn.ConvTranspose2d(input_size, nf*4, 4, stride=1, padding=0),
+            nn.ConvTranspose2d(input_size, nf*8, 4, stride=1, padding=0),
+            nn.BatchNorm2d(nf*8),
+            nn.LeakyReLU(negative_slope=0.2, inplace=True),
+
+            nn.ConvTranspose2d(nf*8, nf*4, 4, stride=2, padding=1),
             nn.BatchNorm2d(nf*4),
             nn.LeakyReLU(negative_slope=0.2, inplace=True),
 
@@ -165,7 +173,7 @@ def load_dataset(batch_size, dataset, image_size):
         print('Dataset not known: {}'.format(dataset))
         sys.exit(-1)
     transform = torchvision.transforms.Compose([
-        torchvision.transforms.Resize(image_size),
+        torchvision.transforms.Resize((image_size, image_size)),
         torchvision.transforms.ToTensor(),
         torchvision.transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
     ])
@@ -187,18 +195,28 @@ def load_dataset(batch_size, dataset, image_size):
             'data', train=False,
             download=True, transform=transform
         )
+    elif dataset == 'CELEBA':
+        data_path = 'data/img_align_celeba/'
+        train_data = torchvision.datasets.ImageFolder(
+            root=data_path,
+            transform=transform
+        )
+
     train_loader = torch.utils.data.DataLoader(
         train_data,
         batch_size=batch_size,
         num_workers=0,
         shuffle=True
     )
-    test_loader = torch.utils.data.DataLoader(
-        test_data,
-        batch_size=batch_size,
-        num_workers=0,
-        shuffle=True
-    )
+    if dataset != 'CELEBA':
+        test_loader = torch.utils.data.DataLoader(
+            test_data,
+            batch_size=batch_size,
+            num_workers=0,
+            shuffle=True
+        )
+    else:
+        test_loader = train_loader
     return iter(train_loader), train_loader, test_loader
 
 
@@ -224,6 +242,7 @@ device = 'cuda' if torch.cuda.is_available() else 'cpu'
 stream = open('config.yml', 'r')
 config = load(stream, Loader)
 
+dataset = config['dataset']
 n_noise_features = config['n_noise_features']
 epochs = config['epochs']
 k = config['k']
@@ -271,7 +290,7 @@ loss = torch.nn.BCELoss()
 
 # iterator, train_loader = get_train_loader(batch_size)
 iterator, train_loader, test_loader = load_dataset(batch_size,
-                                                   'MNIST',
+                                                   dataset,
                                                    image_size[1])
 images = iterator.next()[0].numpy()
 print('Image size: {}'.format(images[0].shape))
@@ -284,7 +303,7 @@ plt.show()
 plt.close(fig)
 
 # Plot images with noise
-input_noise = torch.randn(*images[0].shape) * 0.1
+input_noise = np.random.randn(*images[0].shape) * 0.07
 fig = plt.figure()
 for idx in np.arange(10):
     ax = fig.add_subplot(5, 2, idx+1, xticks=[], yticks=[])
@@ -313,8 +332,10 @@ for e in range(epochs):
             noises = torch.from_numpy(np.random.randn(batch_size, n_noise_features)).type(dtype=torch.FloatTensor).to(device)
             # Apply noise to input images
             if discriminator_input_noise:
-                input_noise = torch.randn(*images.shape) * 0.1 * noise_factor
-                images = images + input_noise
+                input_noise_d = torch.randn(*images.shape).to(device) * 0.07 * noise_factor
+                input_noise_g = torch.randn(batch_size, 1).to(device) * 0.07 * noise_factor
+                images = images + input_noise_d
+                noises = noises + input_noise_g
             # Compute output of both the discriminator and generator
             disc_output = discriminator(images)
             gen_output = discriminator(generator(noises))
@@ -361,7 +382,7 @@ for e in range(epochs):
 
 
 disc_accs, gen_accs = [], []
-for test, _ in test_loader:
+for test, _ in train_loader:
     test = test.to(device)
     noises = torch.from_numpy(np.random.randn(batch_size, n_noise_features)).type(dtype=torch.FloatTensor).to(device)
     disc_output = discriminator(test).detach().to('cpu')

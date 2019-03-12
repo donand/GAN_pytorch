@@ -39,3 +39,24 @@ Mean of the Generated Distribution                                          |  S
 
 # Deep Convolutional GAN (DCGAN) - Work in Progress
 This will be the implementation of GAN using Deep Convolutional Neural Networks as described in [Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks](https://arxiv.org/abs/1511.06434) by Alec Radford, Luke Metz and Soumith Chintala.
+
+I used the same architecture for the discriminator and the generator used in the paper, where the generator is the following
+
+<p align="center"><img src="DCGAN/all_conv_64px_generator.png" alt="Generator Architecture" width="800"></p>
+
+Image taken from [this paper](https://arxiv.org/abs/1511.06434).
+
+The discriminator has 5 convolutional layers with a kernel size of 4 and stride 2. In this way we don't have to use MaxPooling.<br>
+Before each convolutional layer, Batch Normalization is applied, and the output of the convolutional layer goes through the Leaky ReLU activation function.<br>
+There are no fully connected layers in the network, and at the end a Sigmoid activation is applied.
+
+## CelebA
+After training DCGAN for 11 epochs, it achieved pretty decent results.
+
+The discriminator has 128 filters in the first layer, up to 1024 in the last one.<br>
+The generator has the same number of filters, starting from 1024 and going down to 128 to the last ConvTranspose layer.
+
+<p align="center">
+  <img hspace=20 src="DCGAN/results_celeba/video/celeba.gif" width="400" />
+  <img hspace=20 src="DCGAN/results_celeba/video/frame_10.png" width="400" /> 
+</p>
