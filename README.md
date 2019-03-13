@@ -1,10 +1,12 @@
-# GANs in PyTorch
+# GAN in PyTorch
 In this repository I implement several versions of Generative Adversarial Networks in PyTorch.
 
 All comments and discussions are welcome.
 
 # GAN
-In this section I implemented the original version of GAN as described in [this paper](https://arxiv.org/abs/1406.2661) by Ian J. Goodfellow, Jean Pouget-Abadie, Mehdi Mirza, Bing Xu, David Warde-Farley, Sherjil Ozair, Aaron Courville, Yoshua Bengio
+In this section I implemented the original version of GAN as described in the paper [Generative Adversarial Networks](https://arxiv.org/abs/1406.2661) by Ian J. Goodfellow, Jean Pouget-Abadie, Mehdi Mirza, Bing Xu, David Warde-Farley, Sherjil Ozair, Aaron Courville, Yoshua Bengio.
+
+The implementation can be found in [GAN/gan.py](GAN/gan.py).
 
 ## Experiment setup
 The target distribution was a Normal distribution with mean=3 and std=1, and the input noise to the generator was sampled from a uniform distribution. Both the target and noise samples are monodimensional, but this can be changed in the config.yml file in order to extend to multiple dimensions.
@@ -49,6 +51,8 @@ Image taken from [this paper](https://arxiv.org/abs/1511.06434).
 The discriminator has 5 convolutional layers with a kernel size of 4 and stride 2. In this way we don't have to use MaxPooling.<br>
 Before each convolutional layer, Batch Normalization is applied, and the output of the convolutional layer goes through the Leaky ReLU activation function.<br>
 There are no fully connected layers in the network, and at the end a Sigmoid activation is applied.
+
+The implementation can be found in [DCGAN/dcgan.py](DCGAN/dcgan.py).
 
 ## CelebA
 After training DCGAN for 11 epochs, it achieved pretty decent results.
