@@ -14,12 +14,14 @@ import time
 
 image_size = (1, 64, 64)
 grayscale = True
+DATA_FOLDER = '../data/'
 
 
 class Discriminator(nn.Module):
     def __init__(self, input_channels, nf):
         super(Discriminator, self).__init__()
-        self.flattened_size = 64 * (image_size[1]//2//2//2) * (image_size[2]//2//2//2)
+        self.flattened_size = 64 * \
+            (image_size[1]//2//2//2) * (image_size[2]//2//2//2)
         self.conv_block = nn.Sequential(
             # input is (3, 32, 32)
             nn.Conv2d(input_channels, nf, 4, padding=1, stride=2),
@@ -127,7 +129,8 @@ def checkpoint(disc, gen, epoch):
     torch.save(gen_dict, '{}generator.pt'.format(check_dir))
     plot_results(check_dir)
 
-    noises = torch.from_numpy(np.random.randn(batch_size, n_noise_features)).type(dtype=torch.FloatTensor).to(device)
+    noises = torch.from_numpy(np.random.randn(batch_size, n_noise_features)).type(
+        dtype=torch.FloatTensor).to(device)
     gen_output = generator(noises).detach()
     fig = plt.figure()
     for idx in np.arange(16):
@@ -138,7 +141,8 @@ def checkpoint(disc, gen, epoch):
 
 
 def generate_frame(disc, gen, epoch):
-    noises = torch.from_numpy(np.random.randn(batch_size, n_noise_features)).type(dtype=torch.FloatTensor).to(device)
+    noises = torch.from_numpy(np.random.randn(batch_size, n_noise_features)).type(
+        dtype=torch.FloatTensor).to(device)
     gen_output = generator(noises).detach()
     fig = plt.figure()
     for idx in np.arange(16):
@@ -179,20 +183,20 @@ def load_dataset(batch_size, dataset, image_size):
     ])
     if dataset == 'MNIST':
         train_data = torchvision.datasets.MNIST(
-            'data', train=True,
+            DATA_FOLDER, train=True,
             download=True, transform=transform
         )
         test_data = torchvision.datasets.MNIST(
-            'data', train=False,
+            DATA_FOLDER, train=False,
             download=True, transform=transform
         )
     elif dataset == 'CIFAR10':
         train_data = torchvision.datasets.CIFAR10(
-            'data', train=True,
+            DATA_FOLDER, train=True,
             download=True, transform=transform
         )
         test_data = torchvision.datasets.CIFAR10(
-            'data', train=False,
+            DATA_FOLDER, train=False,
             download=True, transform=transform
         )
     elif dataset == 'CELEBA':
@@ -278,14 +282,17 @@ if not os.path.isdir(video_dir):
     os.makedirs(video_dir)
 
 discriminator = Discriminator(image_size[0], discriminator_filters).to(device)
-generator = Generator(n_noise_features, image_size[0], generator_filters).to(device)
+generator = Generator(
+    n_noise_features, image_size[0], generator_filters).to(device)
 discriminator.weight_init(mean=0.0, std=0.02)
 generator.weight_init(mean=0.0, std=0.02)
 
 print('Discriminator\n{}\n\nGenerator\n{}'.format(discriminator, generator))
 
-disc_optimizer = torch.optim.Adam(discriminator.parameters(), lr=0.0002, betas=(0.5, 0.999))
-gen_optimizer = torch.optim.Adam(generator.parameters(), lr=0.0002, betas=(0.5, 0.999))
+disc_optimizer = torch.optim.Adam(
+    discriminator.parameters(), lr=0.0002, betas=(0.5, 0.999))
+gen_optimizer = torch.optim.Adam(
+    generator.parameters(), lr=0.0002, betas=(0.5, 0.999))
 loss = torch.nn.BCELoss()
 
 # iterator, train_loader = get_train_loader(batch_size)
@@ -329,11 +336,14 @@ for e in range(epochs):
         #########################
         for i in range(k):
             disc_optimizer.zero_grad()
-            noises = torch.from_numpy(np.random.randn(batch_size, n_noise_features)).type(dtype=torch.FloatTensor).to(device)
+            noises = torch.from_numpy(np.random.randn(batch_size, n_noise_features)).type(
+                dtype=torch.FloatTensor).to(device)
             # Apply noise to input images
             if discriminator_input_noise:
-                input_noise_d = torch.randn(*images.shape).to(device) * 0.07 * noise_factor
-                input_noise_g = torch.randn(batch_size, 1).to(device) * 0.07 * noise_factor
+                input_noise_d = torch.randn(
+                    *images.shape).to(device) * 0.07 * noise_factor
+                input_noise_g = torch.randn(batch_size, 1).to(
+                    device) * 0.07 * noise_factor
                 images = images + input_noise_d
                 noises = noises + input_noise_g
             # Compute output of both the discriminator and generator
@@ -343,8 +353,10 @@ for e in range(epochs):
             disc_label_noise = torch.ones(images.shape[0], 1).to(device)
             gen_label_noise = torch.zeros(batch_size, 1).to(device)
             if discriminator_label_noise:
-                disc_label_noise -= (torch.rand(images.shape[0], 1) * 0.2 * noise_factor).to(device)
-                gen_label_noise += (torch.rand(batch_size, 1) * 0.2 * noise_factor).to(device)
+                disc_label_noise -= (torch.rand(
+                    images.shape[0], 1) * 0.2 * noise_factor).to(device)
+                gen_label_noise += (torch.rand(batch_size, 1)
+                                    * 0.2 * noise_factor).to(device)
             # Compute the discriminator loss
             disc_loss = loss(disc_output, disc_label_noise)
             gen_loss = loss(gen_output, gen_label_noise)
@@ -361,7 +373,8 @@ for e in range(epochs):
         #######################
         for i in range(gen_steps):
             gen_optimizer.zero_grad()
-            noises = torch.from_numpy(np.random.randn(batch_size, n_noise_features)).type(dtype=torch.FloatTensor).to(device)
+            noises = torch.from_numpy(np.random.randn(batch_size, n_noise_features)).type(
+                dtype=torch.FloatTensor).to(device)
             gen_images = generator(noises)
             gen_output = discriminator(gen_images)
             # Compute the generator loss
@@ -376,7 +389,8 @@ for e in range(epochs):
         #print([x.grad for x in list(generator.parameters())])
     generate_frame(discriminator, generator, e)
     if e % print_every == 0:
-        print('D loss: {:.5f}\tG loss: {:.5f}\tTime: {:.0f}'.format(np.mean(epoch_dlosses), np.mean(epoch_glosses), time.time() - start))
+        print('D loss: {:.5f}\tG loss: {:.5f}\tTime: {:.0f}'.format(
+            np.mean(epoch_dlosses), np.mean(epoch_glosses), time.time() - start))
     if e != 0 and e % checkpoints == 0:
         checkpoint(discriminator, generator, e)
 
@@ -384,14 +398,17 @@ for e in range(epochs):
 disc_accs, gen_accs = [], []
 for test, _ in train_loader:
     test = test.to(device)
-    noises = torch.from_numpy(np.random.randn(batch_size, n_noise_features)).type(dtype=torch.FloatTensor).to(device)
+    noises = torch.from_numpy(np.random.randn(batch_size, n_noise_features)).type(
+        dtype=torch.FloatTensor).to(device)
     disc_output = discriminator(test).detach().to('cpu')
     gen_output = generator(noises).detach()
     #print(disc_output.shape, gen_output.to('cpu').shape)
     disc_accs.append(np.mean(disc_output.squeeze().numpy()))
-    gen_accs.append(np.mean(discriminator(gen_output).to('cpu').squeeze().detach().numpy()))
+    gen_accs.append(np.mean(discriminator(gen_output).to(
+        'cpu').squeeze().detach().numpy()))
 
-print('Discriminator accuracy on real data: {}\nDiscriminator accuracy on generated data: {}'.format(np.mean(disc_accs), 1 - np.mean(gen_accs)))
+print('Discriminator accuracy on real data: {}\nDiscriminator accuracy on generated data: {}'.format(
+    np.mean(disc_accs), 1 - np.mean(gen_accs)))
 
 
 # Plot 16 generated images
