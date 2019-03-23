@@ -161,8 +161,8 @@ Unfortunately the training times with the increased complexity of the GAN were v
 As we can see, both the critic loss and the Wasserstein distance estimate are still decreasing at the end of the training, meaning that we would have obtained better results by training more.
 
 <p align="center">
-  <img hspace=0 src="WGAN-GP/results_19-03-19_18-41_e20_d128_g64_128x128/video/celeba.gif" width="450" />
-  <img hspace=0 src="WGAN-GP/results_19-03-19_18-41_e20_d128_g64_128x128/video/frame_4.png" width="450" /> 
+  <img hspace=0 src="WGAN-GP/results_19-03-19_18-41_e20_d128_g64_128x128/video/celeba.gif" width="400" />
+  <img hspace=0 src="WGAN-GP/results_19-03-19_18-41_e20_d128_g64_128x128/video/frame_4.png" width="400" /> 
 </p>
 
 The generated samples of the interrupted training are quite promising, some faces are good while other ones are still missing some parts. This is also due to the increased complexity of the problem, with doubled dimensions of the images and more network weights to train.
