@@ -117,8 +117,8 @@ As we can see, the both the critic loss and the Wasserstein distance are very si
   <img hspace=20 src="WGAN-GP/results_19-03-19_13-59_e20_d128_g128_64x64/gradient_penalty.png" width="300" />
 </p>
 <p align="center">
-  <img hspace=20 src="WGAN-GP/results_19-03-19_13-59_e20_d128_g128_64x64/video/celeba.gif" width="400" />
-  <img hspace=20 src="WGAN-GP/results_19-03-19_13-59_e20_d128_g128_64x64/video/frame_13.png" width="400" /> 
+  <img hspace=5 src="WGAN-GP/results_19-03-19_13-59_e20_d128_g128_64x64/video/celeba.gif" width="400" />
+  <img hspace=5 src="WGAN-GP/results_19-03-19_13-59_e20_d128_g128_64x64/video/frame_13.png" width="400" /> 
 </p>
 
 The generated samples have a good quality and variety, indicating that no mode collapse happened.<br>
@@ -139,8 +139,8 @@ The networks were trained for 16 epochs.
 Also in this experiment, like the previous one, both the critic loss and the Wasserstein distance are steadily decreasing, representing a good and costant learning. Also in this case, training for additional epochs could bring an improvement in the quality of the generated samples.
 
 <p align="center">
-  <img hspace=20 src="WGAN-GP/results_19-03-19_21-34_e20_d64_g64_64x64/video/celeba.gif" width="400" />
-  <img hspace=20 src="WGAN-GP/results_19-03-19_21-34_e20_d64_g64_64x64/video/frame_15.png" width="400" /> 
+  <img hspace=5 src="WGAN-GP/results_19-03-19_21-34_e20_d64_g64_64x64/video/celeba.gif" width="400" />
+  <img hspace=5 src="WGAN-GP/results_19-03-19_21-34_e20_d64_g64_64x64/video/frame_15.png" width="400" /> 
 </p>
 
 We can see the quality of the faces increasing epoch by epoch, until the last one.<br>
@@ -161,8 +161,8 @@ Unfortunately the training times with the increased complexity of the GAN were v
 As we can see, both the critic loss and the Wasserstein distance estimate are still decreasing at the end of the training, meaning that we would have obtained better results by training more.
 
 <p align="center">
-  <img hspace=20 src="WGAN-GP/results_19-03-19_18-41_e20_d128_g64_128x128/video/celeba.gif" width="400" />
-  <img hspace=20 src="WGAN-GP/results_19-03-19_18-41_e20_d128_g64_128x128/video/frame_4.png" width="400" /> 
+  <img hspace=5 src="WGAN-GP/results_19-03-19_18-41_e20_d128_g64_128x128/video/celeba.gif" width="400" />
+  <img hspace=5 src="WGAN-GP/results_19-03-19_18-41_e20_d128_g64_128x128/video/frame_4.png" width="400" /> 
 </p>
 
 The generated samples of the interrupted training are quite promising, some faces are good while other ones are still missing some parts. This is also due to the increased complexity of the problem, with doubled dimensions of the images and more network weights to train.
