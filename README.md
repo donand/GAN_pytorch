@@ -84,7 +84,19 @@ This is achieved by clipping the weights of the critic network into a small inte
 The generator is the same that was used in DCGAN.
 
 ## Results with CelebA Dataset
-*Work in Progress*
+This experiment produced not very exciting results. The training was a bit noisy and unstable as we can see from the plots of the loss functions. The losses were slowly decreasing.<br>
+The estimation of the Wasserstein distance is provided by the negative loss of the critic.
+
+<p align="center">
+  <img hspace=20 src="WGAN/results_19-03-23_19-40_e50_d128_g128/discriminator_loss_smoothed.png" width="300" />
+  <img hspace=20 src="WGAN/results_19-03-23_19-40_e50_d128_g128/generator_loss_smoothed.png" width="300" />
+</p>
+In any case, we can observe that a good variety of faces is generated, even if in some cases there are still some artifacts.
+<p align="center">
+  <img hspace=0 src="WGAN/results_19-03-23_19-40_e50_d128_g128/video/celeba.gif" width="400" />
+  <img hspace=0 src="WGAN/results_19-03-23_19-40_e50_d128_g128/video/frame_20.png" width="400" /> 
+</p>
+In the next section I will present WGAN-GP, that produces better results and stabilizes the training of the GAN by removing the weight clipping used to enforce the K-Lipschitz continuity of the critic function and using a new gradient penalty.
 
 # Wasserstein GAN with Gradient Penalty (WGAN-GP)
 This is the implementation of WGAN-GP that is described in [Improved Training of Wasserstein GANs](https://arxiv.org/abs/1704.00028) by Ishaan Gulrajani, Faruk Ahmed, Martin Arjovsky, Vincent Dumoulin, Aaron Courville.

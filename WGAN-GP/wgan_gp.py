@@ -135,46 +135,23 @@ def compute_gradient_penalty(real, fake, discriminator, lambda_pen):
     return penalty
 
 
-def smooth(l, factor=0):
-    last = l[0]
-    result = [l[0]]
-    for item in l[1:]:
-        result.append(last * factor + (1 - factor) * item)
-        last = item
-    return result
-
-
-def plot_results(result_dir):
+def plot_results(result_dir, disc_losses, gen_losses, w_distances, gradient_penalty_list):
+    disc_losses = [-x for x in disc_losses]
     fig = plt.figure()
-    plt.title('Discriminator Loss')
-    rolling = pd.Series(disc_losses).rolling(rolling_window).mean()
-    plt.plot(range(len(rolling)), rolling)
-    plt.xlabel('Training steps')
-    plt.ylabel('Loss')
-    plt.savefig('{}discriminator_loss'.format(result_dir), dpi=300)
-    plt.close(fig)
-    fig = plt.figure()
-    plt.title('Discriminator Loss')
+    plt.title('Discriminator Negative Loss')
     smoothed = pd.DataFrame(disc_losses).ewm(alpha=0.1, adjust=False)
-    plt.plot(range(len(disc_losses)), disc_losses, alpha=0.8)
+    plt.plot(range(len(disc_losses)), disc_losses, alpha=0.7)
     plt.plot(range(len(disc_losses)), smoothed.mean()[0])
     plt.xlabel('Training steps')
+    plt.yscale('log')
     plt.ylabel('Loss')
     plt.savefig('{}discriminator_loss_smoothed'.format(result_dir), dpi=300)
     plt.close(fig)
 
     fig = plt.figure()
     plt.title('Generator Loss')
-    rolling = pd.Series(gen_losses).rolling(rolling_window).mean()
-    plt.plot(range(len(rolling)), rolling)
-    plt.xlabel('Training steps')
-    plt.ylabel('Loss')
-    plt.savefig('{}generator_loss'.format(result_dir), dpi=300)
-    plt.close(fig)
-    fig = plt.figure()
-    plt.title('Generator Loss')
     smoothed = pd.DataFrame(gen_losses).ewm(alpha=0.1, adjust=False)
-    plt.plot(range(len(gen_losses)), gen_losses, alpha=0.8)
+    plt.plot(range(len(gen_losses)), gen_losses, alpha=0.7)
     plt.plot(range(len(gen_losses)), smoothed.mean()[0])
     plt.xlabel('Training steps')
     plt.ylabel('Loss')
@@ -184,9 +161,10 @@ def plot_results(result_dir):
     fig = plt.figure()
     plt.title('Wasserstein Distance Estimate')
     smoothed = pd.DataFrame(w_distances).ewm(alpha=0.1, adjust=False)
-    plt.plot(range(len(w_distances)), w_distances, alpha=0.8)
+    plt.plot(range(len(w_distances)), w_distances, alpha=0.7)
     plt.plot(range(len(w_distances)), smoothed.mean()[0])
     plt.xlabel('Training steps')
+    plt.yscale('log')
     plt.ylabel('Distance')
     plt.savefig('{}wasserstein_distance'.format(result_dir), dpi=300)
     plt.close(fig)
@@ -194,9 +172,10 @@ def plot_results(result_dir):
     fig = plt.figure()
     plt.title('Gradient Penalty')
     smoothed = pd.DataFrame(gradient_penalty_list).ewm(alpha=0.1, adjust=False)
-    plt.plot(range(len(gradient_penalty_list)), gradient_penalty_list, alpha=0.8)
+    plt.plot(range(len(gradient_penalty_list)), gradient_penalty_list, alpha=0.7)
     plt.plot(range(len(gradient_penalty_list)), smoothed.mean()[0])
     plt.xlabel('Training steps')
+    plt.yscale('log')
     plt.ylabel('Penalty')
     plt.savefig('{}gradient_penalty'.format(result_dir), dpi=300)
     plt.close(fig)
@@ -213,7 +192,7 @@ def checkpoint(disc, gen, epoch):
     torch.save(disc_dict, '{}discriminator.pt'.format(check_dir))
     gen_dict = generator.state_dict()
     torch.save(gen_dict, '{}generator.pt'.format(check_dir))
-    plot_results(check_dir)
+    plot_results(check_dir, disc_losses, gen_losses, w_distances, gradient_penalty_list)
 
     noises = torch.from_numpy(np.random.randn(batch_size, n_noise_features)).type(
         dtype=torch.FloatTensor).to(device)
@@ -540,7 +519,7 @@ plt.close(fig)
     plt.close(fig)'''
 
 # Plot the generator and discriminator losses
-plot_results(result_dir)
+plot_results(result_dir, disc_losses, gen_losses, w_distances, gradient_penalty_list)
 
 # Save the models
 disc_dict = discriminator.state_dict()

@@ -1,0 +1,14 @@
+dataset: CELEBA
+n_noise_features: 100
+epochs: 50
+disc_steps: 5
+gen_steps: 1
+discriminator_filters: 128
+generator_filters: 128
+batch_size: 64
+print_every: 1
+checkpoints: 1
+rolling_window: 100
+discriminator_label_noise: False
+discriminator_input_noise: False
+resume_training: None

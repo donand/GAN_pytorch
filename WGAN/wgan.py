@@ -100,22 +100,38 @@ def generator_loss(output_generator):
     return - torch.mean(torch.log(output_generator.squeeze()))
 
 
-def plot_results(result_dir):
+def plot_results(result_dir, disc_losses, gen_losses, w_distances):
+    disc_losses = [-x for x in disc_losses]
     fig = plt.figure()
-    plt.title('Discriminator Loss')
-    rolling = pd.Series(disc_losses).rolling(rolling_window).mean()
-    plt.plot(range(len(rolling)), rolling)
+    plt.title('Discriminator Negative Loss')
+    smoothed = pd.DataFrame(disc_losses).ewm(alpha=0.1, adjust=False)
+    plt.plot(range(len(disc_losses)), disc_losses, alpha=0.7)
+    plt.plot(range(len(disc_losses)), smoothed.mean()[0])
     plt.xlabel('Training steps')
+    plt.yscale('log')
     plt.ylabel('Loss')
-    plt.savefig('{}discriminator_loss'.format(result_dir), dpi=300)
+    plt.savefig('{}discriminator_loss_smoothed'.format(result_dir), dpi=300)
     plt.close(fig)
+
     fig = plt.figure()
     plt.title('Generator Loss')
-    rolling = pd.Series(gen_losses).rolling(rolling_window).mean()
-    plt.plot(range(len(rolling)), rolling)
+    smoothed = pd.DataFrame(gen_losses).ewm(alpha=0.1, adjust=False)
+    plt.plot(range(len(gen_losses)), gen_losses, alpha=0.7)
+    plt.plot(range(len(gen_losses)), smoothed.mean()[0])
     plt.xlabel('Training steps')
     plt.ylabel('Loss')
-    plt.savefig('{}generator_loss'.format(result_dir), dpi=300)
+    plt.savefig('{}generator_loss_smoothed'.format(result_dir), dpi=300)
+    plt.close(fig)
+
+    fig = plt.figure()
+    plt.title('Wasserstein Distance Estimate')
+    smoothed = pd.DataFrame(w_distances).ewm(alpha=0.1, adjust=False)
+    plt.plot(range(len(w_distances)), w_distances, alpha=0.7)
+    plt.plot(range(len(w_distances)), smoothed.mean()[0])
+    plt.xlabel('Training steps')
+    plt.yscale('log')
+    plt.ylabel('Distance')
+    plt.savefig('{}wasserstein_distance'.format(result_dir), dpi=300)
     plt.close(fig)
 
 
@@ -127,7 +143,7 @@ def checkpoint(disc, gen, epoch):
     torch.save(disc_dict, '{}discriminator.pt'.format(check_dir))
     gen_dict = generator.state_dict()
     torch.save(gen_dict, '{}generator.pt'.format(check_dir))
-    plot_results(check_dir)
+    plot_results(check_dir, disc_losses, gen_losses, w_distances)
 
     noises = torch.from_numpy(np.random.randn(batch_size, n_noise_features)).type(
         dtype=torch.FloatTensor).to(device)
@@ -233,14 +249,6 @@ def load_dataset(batch_size, dataset, image_size):
     return train_loader, test_loader
 
 
-'''def get_next_batch(iterator, train_loader):
-    batch = next(iterator, None)
-    if batch is None:
-        iterator = iter(train_loader)
-        batch = next(iterator, None)
-    return batch[0].to(device), batch[1].to(device), iterator, train_loader'''
-
-
 def imshow(images):
     images = images / 2 + 0.5  # unnormalize
     grid = torchvision.utils.make_grid(images)
@@ -248,8 +256,6 @@ def imshow(images):
         plt.imshow(grid.squeeze(), cmap='gray')
     else:
         plt.imshow(grid.permute(1, 2, 0))
-    
-    
 
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
@@ -319,11 +325,11 @@ img = images.numpy()
 print('Max: {}\tMin: {}\tMean: {}\tStd: {}'.format(
     np.max(img),
     np.min(img),
-    (np.mean(img[:,0]), np.mean(img[:,1]), np.mean(img[:,2])),
-    (np.std(img[:,0]), np.std(img[:,1]), np.std(img[:,2]))
+    (np.mean(img[:, 0]), np.mean(img[:, 1]), np.mean(img[:, 2])),
+    (np.std(img[:, 0]), np.std(img[:, 1]), np.std(img[:, 2]))
 ))
 print('Image size: {}'.format(images[0].shape))
-fig = plt.figure(figsize=(10,10))
+fig = plt.figure(figsize=(10, 10))
 imshow(images)
 plt.show()
 plt.close(fig)
@@ -341,7 +347,7 @@ for idx in np.arange(10):
 plt.show()
 plt.close(fig)'''
 
-disc_losses, gen_losses = [], []
+disc_losses, gen_losses, w_distances = [], [], []
 gen_iterations = 0
 steps = 0
 
@@ -374,42 +380,29 @@ for e in range(epochs):
             disc_optimizer.zero_grad()
             noises = torch.from_numpy(np.random.randn(common_batch_size, n_noise_features)).type(
                 dtype=torch.FloatTensor).to(device)
-            '''# Apply noise to input images
-            if discriminator_input_noise:
-                input_noise_d = torch.randn(
-                    *images.shape).to(device) * 0.07 * noise_factor
-                input_noise_g = torch.randn(common_batch_size, 1).to(
-                    device) * 0.07 * noise_factor
-                images = images + input_noise_d
-                noises = noises + input_noise_g'''
             # Compute output of both the discriminator and generator
             disc_output = discriminator(images)
             gen_output = discriminator(generator(noises))
-            disc_output.backward(torch.ones(common_batch_size, 1).to(device))
-            gen_output.backward(- torch.ones(common_batch_size, 1).to(device))
-            #loss = - torch.mean(disc_output) + torch.mean(gen_output)
-            #loss.backward()
-            errD = disc_output - gen_output
+            #disc_output.backward(torch.ones(common_batch_size, 1).to(device))
+            #gen_output.backward(- torch.ones(common_batch_size, 1).to(device))
+            loss = torch.mean(gen_output - disc_output)
+            loss.backward()
+            #errD = disc_output - gen_output
             disc_optimizer.step()
             # clamp parameters to a cube
             for p in discriminator.parameters():
                 p.data.clamp_(-0.01, 0.01)
-            '''# Apply noise to labels
-            disc_label_noise = torch.ones(images.shape[0], 1).to(device)
-            gen_label_noise = torch.zeros(batch_size, 1).to(device)
-            if discriminator_label_noise:
-                disc_label_noise -= (torch.rand(
-                    images.shape[0], 1) * 0.2 * noise_factor).to(device)
-                gen_label_noise += (torch.rand(batch_size, 1)
-                                    * 0.2 * noise_factor).to(device)'''
 
             # Save the loss
-            disc_losses.append(torch.mean(errD).item())
-            epoch_dlosses.append(torch.mean(errD).item())
-            writer.add_scalar('data/D_loss', torch.mean(errD).item(), steps)
-            #disc_losses.append(loss.item())
-            #epoch_dlosses.append(loss.item())
-            #writer.add_scalar('data/D_loss', loss.item(), steps)
+            #disc_losses.append(torch.mean(errD).item())
+            #epoch_dlosses.append(torch.mean(errD).item())
+            #w_distances.append(torch.mean(errD).item())
+            #writer.add_scalar('data/D_loss', torch.mean(errD).item(), steps)
+            disc_losses.append(loss.item())
+            epoch_dlosses.append(loss.item())
+            w_distances.append(- loss.item())
+            writer.add_scalar('data/D_loss', loss.item(), steps)
+            writer.add_scalar('data/Wasserstein_distance_estimate', - loss.item(), steps)
             steps += 1
 
         #######################
@@ -423,18 +416,21 @@ for e in range(epochs):
             dtype=torch.FloatTensor).to(device)
         gen_images = generator(noises)
         gen_output = discriminator(gen_images)
-        gen_output.backward(torch.ones(batch_size, 1).to(device))
-        #loss = - torch.mean(gen_output)
-        #loss.backward()
+        #gen_output.backward(torch.ones(batch_size, 1).to(device))
+        loss = - torch.mean(gen_output)
+        loss.backward()
         gen_optimizer.step()
         # Save the loss
-        gen_losses.append(torch.mean(gen_output).item())
-        epoch_glosses.append(torch.mean(gen_output).item())
+        #gen_losses.append(torch.mean(gen_output).item())
+        #epoch_glosses.append(torch.mean(gen_output).item())
+        #writer.add_scalar('data/G_loss', torch.mean(gen_output).item(), steps)
+        gen_losses.append(loss.item())
+        epoch_glosses.append(loss.item())
+        writer.add_scalar('data/G_loss', loss.item(), gen_iterations)
         #print('------------', gen_loss.item(), np.mean(temp3))
         #print([x.grad for x in list(generator.parameters())])
-        writer.add_scalar('data/G_loss', torch.mean(gen_output).item(), steps)
+        
         gen_iterations += 1
-        steps += 1
     if e % print_every == 0:
         generate_frame(discriminator, generator, e)
         print('D loss: {:.5f}\tG loss: {:.5f}\tTime: {:.0f}'.format(
@@ -479,7 +475,7 @@ plt.close(fig)
     plt.close(fig)'''
 
 # Plot the generator and discriminator losses
-plot_results(result_dir)
+plot_results(result_dir, disc_losses, gen_losses, w_distances)
 
 # Save the models
 disc_dict = discriminator.state_dict()

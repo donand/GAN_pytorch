@@ -7,14 +7,6 @@ rolling_window = 100
 
 
 def plot_results(result_dir, disc_losses, gen_losses, w_distances, gradient_penalty_list):
-    '''fig = plt.figure()
-    plt.title('Discriminator Negative Loss')
-    rolling = pd.Series(disc_losses).rolling(rolling_window).mean()
-    plt.plot(range(len(rolling)), rolling)
-    plt.xlabel('Training steps')
-    plt.ylabel('Loss')
-    plt.savefig('{}discriminator_loss'.format(result_dir), dpi=300)
-    plt.close(fig)'''
     disc_losses = [-x for x in disc_losses]
     fig = plt.figure()
     plt.title('Critic Negative Loss')
@@ -28,14 +20,6 @@ def plot_results(result_dir, disc_losses, gen_losses, w_distances, gradient_pena
     plt.savefig('{}discriminator_loss_smoothed'.format(result_dir), dpi=300)
     plt.close(fig)
 
-    '''fig = plt.figure()
-    plt.title('Generator Loss')
-    rolling = pd.Series(gen_losses).rolling(rolling_window).mean()
-    plt.plot(range(len(rolling)), rolling)
-    plt.xlabel('Training steps')
-    plt.ylabel('Loss')
-    plt.savefig('{}generator_loss'.format(result_dir), dpi=300)
-    plt.close(fig)'''
     fig = plt.figure()
     plt.title('Generator Loss')
     smoothed = pd.DataFrame(gen_losses).ewm(alpha=0.1, adjust=False)
