@@ -3,6 +3,12 @@ In this repository I implement several versions of Generative Adversarial Networ
 
 All comments and discussions are welcome.
 
+Table of contents
+- [GAN](#gan)
+- [Deep Convolutional GAN (DCGAN)](#deep-convolutional-gan-dcgan)
+- [Wasserstein Generative Adversarial Networks (WGAN)](#wasserstein-generative-adversarial-networks-wgan)
+- [Wasserstein GAN with Gradient Penalty (WGAN-GP)](#wasserstein-gan-with-gradient-penalty-wgan-gp)
+
 # GAN
 In this section I implemented the original version of GAN as described in the paper [Generative Adversarial Networks](https://arxiv.org/abs/1406.2661) by Ian J. Goodfellow, Jean Pouget-Abadie, Mehdi Mirza, Bing Xu, David Warde-Farley, Sherjil Ozair, Aaron Courville, Yoshua Bengio.
 
@@ -39,7 +45,7 @@ Mean of the Generated Distribution                                          |  S
 
 
 
-# Deep Convolutional GAN (DCGAN) - Work in Progress
+# Deep Convolutional GAN (DCGAN)
 This will be the implementation of GAN using Deep Convolutional Neural Networks as described in [Unsupervised Representation Learning with Deep Convolutional Generative Adversarial Networks](https://arxiv.org/abs/1511.06434) by Alec Radford, Luke Metz and Soumith Chintala.
 
 I used the same architecture for the discriminator and the generator used in the paper, where the generator is the following
