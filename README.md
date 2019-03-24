@@ -51,6 +51,7 @@ This will be the implementation of GAN using Deep Convolutional Neural Networks 
 I used the same architecture for the discriminator and the generator used in the paper, where the generator is the following
 
 <p align="center"><img src="DCGAN/all_conv_64px_generator.png" alt="Generator Architecture" width="800"></p>
+
 Image taken from [this paper](https://arxiv.org/abs/1511.06434).<br>
 Batch Normalization is applied after each convolutional layer. The activation function is Leaky ReLU.
 
